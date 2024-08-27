@@ -21,6 +21,8 @@ extension ToDoListItem {
     @NSManaged public var completed: Bool
     @NSManaged public var userId: Int16
     @NSManaged public var createdAt: Date?
+    @NSManaged public var title: String?
+
 
 }
 

@@ -55,6 +55,7 @@ class NetworkService {
                 newItem.completed = todoDict["completed"] as? Bool ?? false
                 newItem.userId = todoDict["userId"] as? Int16 ?? 0
                 newItem.createdAt = Date()
+                newItem.title = String("Задача № \(newItem.id)")
             }
             
             do {

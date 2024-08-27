@@ -18,6 +18,12 @@ class ViewController: UIViewController {
         return tableView
     }()
     
+    private lazy var activityIndicator: UIActivityIndicatorView = {
+        let activityIndicator = UIActivityIndicatorView(style: .medium)
+        activityIndicator.hidesWhenStopped = true
+        return activityIndicator
+    }()
+    
     private var models = [ToDoListItem]()
 
     override func viewDidLoad() {
@@ -71,17 +77,55 @@ class ViewController: UIViewController {
     
     
     @objc private func didTapAdd() {
-        let alert = UIAlertController(title: "New Item",
-                                      message: "Enter new item",
-                                      preferredStyle: .alert)
-        alert.addTextField()
-        alert.addAction(UIAlertAction(title: "Submit", style: .cancel, handler: { [weak self] _ in
-            guard let field = alert.textFields?.first,let text = field.text, !text.isEmpty, let self = self else { return }
-            self.createItem(name: text)
-        }))
+        
+        showLoading()
+        
+        let alertController = UIAlertController(title: "Новая Заметка",
+                                                message: "Запиши свою заметку",
+                                                preferredStyle: .alert)
+        
+        alertController.addTextField { textField in
+            textField.placeholder = "Заголовок"
+        }
+        
+        alertController.addTextField { textField in
+            textField.placeholder = "Заметка..."
+        }
+        
+        let addAction = UIAlertAction(title: "Добавить", style: .default) { [weak self] _ in
+            guard let textFields = alertController.textFields,
+                  let titleField = textFields.first, let noteTitle = titleField.text, !noteTitle.isEmpty,
+                  let contentField = textFields.last, let noteContent = contentField.text, !noteContent.isEmpty else {
+                  self?.showError(title: "Ошибка", message: "Оба поля не могут быть пустыми.")
+                return
+            }
+            self?.createItem(name: noteTitle, note: noteContent)
+        }
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel) { [weak self] _ in
+            self?.hideLoading()
+        }
+        alertController.addAction(addAction)
+        alertController.addAction(cancelAction)
+        
+        present(alertController, animated: true, completion: nil)
         
         
-        present(alert, animated: true)
+    }
+    
+    func showError(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        present(alert, animated: true, completion: nil)
+    }
+    
+    func showLoading() {
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: activityIndicator)
+        activityIndicator.startAnimating()
+    }
+    
+    func hideLoading() {
+        activityIndicator.stopAnimating()
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(didTapAdd))
     }
     
     
@@ -101,11 +145,13 @@ class ViewController: UIViewController {
         }
     }
 
-    func createItem(name: String) {
+    func createItem(name: String, note: String) {
         let newItem = ToDoListItem(context: context)
-        newItem.todo = name
+        newItem.todo = note
+        newItem.title = name
         newItem.createdAt = Date()
         models.insert(newItem, at: 0)
+        hideLoading()
         saveContext()
     }
     
@@ -114,8 +160,9 @@ class ViewController: UIViewController {
         saveContext()
     }
     
-    func updateItem(item: ToDoListItem, newName: String) {
-        item.todo = newName
+    func updateItem(item: ToDoListItem, newTodo: String, newTitle: String) {
+        item.todo = newTodo
+        item.title = newTitle
          saveContext()
     }
     
@@ -128,28 +175,53 @@ class ViewController: UIViewController {
         }
     }
     
-    
     func editNote(at index: Int) {
+        
+        showLoading()
+        
         let item = models[index]
        
-                   let alert = UIAlertController(title: "Elit Item",
-                                                 message: "Edit your item",
+                   let alertController = UIAlertController(title: "Редактировать Заметку",
+                                                 message: nil,
                                                  preferredStyle: .alert)
-                   alert.addTextField()
-        alert.textFields?.first?.text = item.todo
-                   alert.addAction(UIAlertAction(title: "Save", style: .cancel, handler: { [weak self] _ in
-                       guard let field = alert.textFields?.first,let newName = field.text, !newName.isEmpty, let self = self else { return }
-                       self.updateItem(item: item, newName: newName)
-                   }))
-       
-                   self.present(alert, animated: true)
+        
+        
+        alertController.addTextField { textField in
+            textField.placeholder = "Заголовок"
+            textField.text = item.title
+        }
+        
+        alertController.addTextField { textField in
+            textField.placeholder = "Заметка..."
+            textField.text = item.todo
+        }
+        
+        let saveAction = UIAlertAction(title: "Сохранить", style: .default) { [weak self] _ in
+            guard let textFields = alertController.textFields,
+                  let titleField = textFields.first, let noteTitle = titleField.text, !noteTitle.isEmpty,
+                  let contentField = textFields.last, let noteContent = contentField.text, !noteContent.isEmpty else {
+                self?.showError(title: "Ошибка", message: "Заголовок и заметка не могут быть пустыми")
+                self?.hideLoading()
+                return
+            }
+            self?.updateItem(item: item, newTodo: noteContent, newTitle: noteTitle)
+            self?.hideLoading()
+        }
+        
+        let cancelAction = UIAlertAction(title: "Отмена", style: .cancel) { [weak self] _ in
+            self?.hideLoading()
+        }
+        alertController.addAction(saveAction)
+        alertController.addAction(cancelAction)
+        
+        present(alertController, animated: true, completion: nil)
+        
     }
-
 }
 extension ViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 60
+        return 65
     }
     
     
@@ -161,9 +233,9 @@ extension ViewController: UITableViewDataSource {
         
         let model = models[indexPath.row]
         
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: ToDoCell.identifire, for: indexPath) as? ToDoCell, let name = model.todo, let date = model.createdAt else { return UITableViewCell() }
-       
-        cell.configure(name: name, date: date, isCompleted: model.completed)
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: ToDoCell.identifire, for: indexPath) as? ToDoCell, let noteText = model.todo, let date = model.createdAt, let titleText = model.title else { return UITableViewCell() }
+               
+        cell.configure(titleText: titleText, noteText: noteText, date: date, isCompleted: model.completed)
 
         return cell
     }
