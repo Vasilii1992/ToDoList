@@ -75,7 +75,7 @@ class ToDoCell: UITableViewCell {
     func configure(name: String, date: Date, isCompleted: Bool) {
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "ru_RU")
-        dateFormatter.dateFormat = "d MMMM yyyy"
+        dateFormatter.dateFormat = "d MMMM yyyy HH:mm"
         nameLabel.text = name
         dateLabel.text = dateFormatter.string(from: date)
         noteImageView.image = UIImage(systemName: isCompleted ? "checkmark.circle.fill" : "circle")

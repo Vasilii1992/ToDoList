@@ -33,44 +33,25 @@ class ViewController: UIViewController {
         }
     }
 
-    
     func fetchDataFromServer() {
-        guard let url = URL(string: "https://dummyjson.com/todos") else { return }
-
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            guard let data = data, error == nil else {
-                print("Failed to fetch data: \(error?.localizedDescription ?? "No error")")
-                return
-            }
-
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let todos = json["todos"] as? [[String: Any]] {
-                    print("Fetched data: \(todos)")  // Debug: Print fetched data
-                    self?.saveTodosToCoreData(todos: todos)
-                    
-                    UserDefaults.standard.set(true, forKey: "isDataDownloaded")
-                }
-            } catch {
-                print("Failed to parse JSON: \(error)")
-            }
-        }
-        task.resume()
-    }
-
-
-    func saveTodosToCoreData(todos: [[String: Any]]) {
-        for todoDict in todos {
-            let newItem = ToDoListItem(context: context)
-            newItem.id = todoDict["id"] as? Int16 ?? 0
-            newItem.todo = todoDict["todo"] as? String
-            newItem.completed = todoDict["completed"] as? Bool ?? false
-            newItem.userId = todoDict["userId"] as? Int16 ?? 0
-            newItem.createdAt = Date()
-        }
-        saveContext()
-        getAllItems()
-    }
+           NetworkService.shared.fetchDataFromServer { [weak self] result in
+               switch result {
+               case .success(let todos):
+                   print("Fetched data: \(todos)")
+                   NetworkService.shared.saveTodosToCoreData(todos: todos, context: self?.context ?? NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)) { saveResult in
+                       switch saveResult {
+                       case .success:
+                           UserDefaults.standard.set(true, forKey: "isDataDownloaded")
+                           self?.getAllItems()
+                       case .failure(let error):
+                           print("Failed to save data to Core Data: \(error.localizedDescription)")
+                       }
+                   }
+               case .failure(let error):
+                   print("Failed to fetch data: \(error.localizedDescription)")
+               }
+           }
+       }
 
 
     private func setupViews() {
@@ -120,8 +101,6 @@ class ViewController: UIViewController {
         }
     }
 
-
-    
     func createItem(name: String) {
         let newItem = ToDoListItem(context: context)
         newItem.todo = name
@@ -129,7 +108,6 @@ class ViewController: UIViewController {
         models.insert(newItem, at: 0)
         saveContext()
     }
-
     
     func deleteItem(item: ToDoListItem) {
         context.delete(item)
