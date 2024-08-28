@@ -1,17 +1,9 @@
-//
-//  NetworkService.swift
-//  ToDoList
-//
-//  Created by Василий Тихонов on 27.08.2024.
-//
-
 import Foundation
 import CoreData
 
-class NetworkService {
+final class NetworkService {
     
     static let shared = NetworkService()
-
     private init() {}
     
     func fetchDataFromServer(completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
@@ -45,7 +37,7 @@ class NetworkService {
         }
         task.resume()
     }
-
+    
     func saveTodosToCoreData(todos: [[String: Any]], context: NSManagedObjectContext, completion: @escaping (Result<Void, Error>) -> Void) {
         context.perform {
             for todoDict in todos {
@@ -60,9 +52,14 @@ class NetworkService {
             
             do {
                 try context.save()
-                completion(.success(()))
+                DispatchQueue.main.async {
+                    completion(.success(()))
+                }
+                
             } catch {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }
     }

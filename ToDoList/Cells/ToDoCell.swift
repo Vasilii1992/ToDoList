@@ -1,13 +1,6 @@
-//
-//  ToDoCell.swift
-//  ToDoList
-//
-//  Created by Василий Тихонов on 26.08.2024.
-//
-
 import UIKit
 
-class ToDoCell: UITableViewCell {
+final class ToDoCell: UITableViewCell {
     
     static let identifire = "ToDoCell"
     
@@ -50,7 +43,6 @@ class ToDoCell: UITableViewCell {
         return imageView
     }()
     
-   
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
@@ -82,7 +74,7 @@ class ToDoCell: UITableViewCell {
             dateLabel.topAnchor.constraint(equalTo: topAnchor, constant: 6),
             dateLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             
-
+            
         ])
     }
     
@@ -94,6 +86,5 @@ class ToDoCell: UITableViewCell {
         noteLabel.text = noteText
         dateLabel.text = dateFormatter.string(from: date)
         noteImageView.image = UIImage(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-
     }
 }
